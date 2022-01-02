@@ -248,9 +248,6 @@ contract Voting is Ownable {
      * Can only be called by the admin.
      */
     function tallyVotes() public onlyOnStatus(WorkflowStatus.VotingSessionEnded) onlyOwner {
-        // require(_currentVotingStatus != WorkflowStatus.VotesTallied, "Votes are already tallied");
-        // require(_currentVotingStatus == WorkflowStatus.VotingSessionEnded, "Talling votes have to occur after end voting session");       
-
         //find max count value
         for(uint i = 1; i < _proposalIdIncrement + 1; i++){
             if(proposals[i].voteCount > proposals[_winnerVotedProposalId].voteCount){
@@ -258,7 +255,7 @@ contract Voting is Ownable {
             }
         }     
 
-        //check if equality exists => winner not determinated 
+        //check if equality exists => winner not determined 
         //(le besoin spécifie que le gagnant est determiné par la majorité, la proposoition gagnante doit avoir le plus de voix. Donc si egalité, les conditions pour gagner se sont pas remplies)
         for(uint i = 1; i < _proposalIdIncrement + 1; i++){
             if(i != _winnerVotedProposalId && proposals[i].voteCount == proposals[_winnerVotedProposalId].voteCount){
