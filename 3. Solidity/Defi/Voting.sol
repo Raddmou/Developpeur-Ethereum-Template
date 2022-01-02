@@ -139,7 +139,7 @@ contract Voting is Ownable {
      * @notice returns the identifier, description and vote count of the proposal winner
      */
     function getWinner() public view onlyOnStatusWithMessage(WorkflowStatus.VotesTallied, "Votes not tallied yet") returns (uint winnerProposalId, string memory winnerProposalDescription, uint winnerVoteCount) {
-        require(_winnerVotedProposalId > 0, "No winner determinated");
+        require(_winnerVotedProposalId > 0, "No winner determined");
         winnerProposalId = _winnerVotedProposalId;
         winnerProposalDescription = proposals[_winnerVotedProposalId].description;
         winnerVoteCount = proposals[_winnerVotedProposalId].voteCount;
