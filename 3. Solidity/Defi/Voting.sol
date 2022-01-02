@@ -185,9 +185,7 @@ contract Voting is Ownable {
      * Can only be called by the admin.
      */
     function startProposalsRegistration() public onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
-        //_currentVotingStatus = WorkflowStatus.ProposalsRegistrationStarted;
         changeStatus(WorkflowStatus.ProposalsRegistrationStarted);
-        //emit WorkflowStatusChanged(WorkflowStatus.RegisteringVoters, WorkflowStatus.ProposalsRegistrationStarted);
     }
 
     /**
@@ -208,8 +206,6 @@ contract Voting is Ownable {
      * Can only be called during voting session.
      */
     function endProposalsRegistration() public onlyOnStatus(WorkflowStatus.ProposalsRegistrationStarted) onlyOwner {
-        // _currentVotingStatus = WorkflowStatus.ProposalsRegistrationEnded;
-        // emit WorkflowStatusChange(WorkflowStatus.ProposalsRegistrationStarted, WorkflowStatus.ProposalsRegistrationEnded);
         changeStatus(WorkflowStatus.ProposalsRegistrationEnded);
     }
 
@@ -219,8 +215,6 @@ contract Voting is Ownable {
      * Can only be called after voting registration session.
      */
     function startVotingSession() public onlyOnStatus(WorkflowStatus.ProposalsRegistrationEnded) onlyOwner {
-        // _currentVotingStatus = WorkflowStatus.VotingSessionStarted;
-        // emit WorkflowStatusChange(WorkflowStatus.ProposalsRegistrationEnded, WorkflowStatus.VotingSessionStarted);
         changeStatus(WorkflowStatus.VotingSessionStarted);
     }
 
@@ -246,11 +240,6 @@ contract Voting is Ownable {
      * Can only be called during voting session.
      */
     function endVotingSession() public onlyOnStatus(WorkflowStatus.VotingSessionStarted) onlyOwner {
-        // require(_currentVotingStatus != WorkflowStatus.VotingSessionEnded, "Voting session has already ended"); 
-        // require(_currentVotingStatus == WorkflowStatus.VotingSessionStarted, "End voting session have to occur after start voting session");            
-
-        // _currentVotingStatus = WorkflowStatus.VotingSessionEnded;
-        // emit WorkflowStatusChange(WorkflowStatus.VotingSessionStarted, WorkflowStatus.VotingSessionEnded);
         changeStatus(WorkflowStatus.VotingSessionEnded);
     }
 
