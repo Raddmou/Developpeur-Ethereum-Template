@@ -29,23 +29,19 @@ contract Voting is Ownable {
      * @notice represents the identifier of the winner proposal.
      * @dev equals 0 before vote tailling.
      */
-    uint private _winnerVotedProposalId;
+    uint private _winnerVotedProposalId = 0;
+
+    /**
+     * @notice determines if there is an equality winners.
+     * @dev equals false before vote tailling.
+     */
+    bool private _equalityWinners = false;
 
     /**
      * @notice represents the current voting status.
      * @dev initialized to RegisteringVoters status.
      */
-    WorkflowStatus private _currentVotingStatus;
-
-    /**
-     * @notice represents the voters identified by their addresses.
-     */
-    mapping(address => Voter) public voters;
-
-    /**
-     * @notice represents voters proposals.
-     */
-    mapping(uint => Proposal) public proposals;
+    WorkflowStatus private _currentVotingStatus =  WorkflowStatus.RegisteringVoters;
 
     /**
      * @notice used to increment proposals identifiers.
@@ -53,12 +49,7 @@ contract Voting is Ownable {
      */
     uint private _proposalIdIncrement;
 
-    event VoterRegistered(address voterAddress); 
-    event WorkflowStatusChanged(WorkflowStatus previousStatus, WorkflowStatus newStatus);
-    event ProposalRegistered(uint proposalId);
-    event Voted (address voter, uint proposalId);
-
-    /** @notice struct for a voter
+     /** @notice struct for a voter
         @param isRegistered define if voter is registred for voting
         @param hasVoted define if voter has voted
         @param votedProposalId represents the identifier of the voted proposal by voter
@@ -95,21 +86,27 @@ contract Voting is Ownable {
         VotesTallied
     }
 
-     /**
-     * @dev Initializes the contract setting the deployer as the initial owner and admin.
+    /**
+     * @notice represents the voters identified by their addresses.
      */
-    constructor() {
-        _currentVotingStatus = WorkflowStatus.RegisteringVoters;
-        _proposalIdIncrement = 0;
-        _winnerVotedProposalId = 0;
-    }
+    mapping(address => Voter) public voters;
+
+    /**
+     * @notice represents voters proposals.
+     */
+    mapping(uint => Proposal) public proposals;
+
+    event VoterRegistered(address voterAddress); 
+    event WorkflowStatusChanged(WorkflowStatus previousStatus, WorkflowStatus newStatus);
+    event ProposalRegistered(uint proposalId);
+    event Voted (address voter, uint proposalId);
 
     /**
      * @dev Throws if called by any address account not registred.
      */
     modifier onlyRegistered(){
         require(voters[msg.sender].isRegistered == true, "address not registered as voter");
-        _; //why we have to add the line?
+        _;
     }
 
     /**
@@ -138,8 +135,8 @@ contract Voting is Ownable {
     /**
      * @notice returns the identifier, description and vote count of the proposal winner
      */
-    function getWinner() public view onlyOnStatusWithMessage(WorkflowStatus.VotesTallied, "Votes not tallied yet") returns (uint winnerProposalId, string memory winnerProposalDescription, uint winnerVoteCount) {
-        require(_winnerVotedProposalId > 0, "No winner determined");
+    function getWinner() external view onlyOnStatusWithMessage(WorkflowStatus.VotesTallied, "Votes not tallied yet") returns (uint winnerProposalId, string memory winnerProposalDescription, uint winnerVoteCount) {
+        require(_winnerVotedProposalId > 0 && !_equalityWinners, "No winner determined");
         winnerProposalId = _winnerVotedProposalId;
         winnerProposalDescription = proposals[_winnerVotedProposalId].description;
         winnerVoteCount = proposals[_winnerVotedProposalId].voteCount;
@@ -150,9 +147,9 @@ contract Voting is Ownable {
      * @param addressToRegister address voter to register
      * Can only be called by the admin.
      */
-    function registerVoter(address addressToRegister) public onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
-        require(voters[addressToRegister].isRegistered == false, "Voter already registred");
-        registerVoter(addressToRegister, Voter(true, false, 0));
+    function registerVoter(address addressToRegister) external onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
+        require(!voters[addressToRegister].isRegistered, "Voter already registred");
+        registerVoterInternal(addressToRegister);
     }
 
     /**
@@ -160,11 +157,11 @@ contract Voting is Ownable {
      * @param addressesToRegister address voter list to register
      * Can only be called by the admin.
      */
-    function registerVoters(address[] memory addressesToRegister) public onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
+    function registerVoters(address[] memory addressesToRegister) external onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
         for(uint i=0; i < addressesToRegister.length; i++){
             if(!voters[addressesToRegister[i]].isRegistered)
             {
-                registerVoter(addressesToRegister[i], Voter(true, false, 0));
+                registerVoterInternal(addressesToRegister[i]);
             }
         }
     }
@@ -172,11 +169,10 @@ contract Voting is Ownable {
     /**
      * @notice register a determinated voter by his address.
      * @param addressToRegister address voter to register
-     * @param voter voter struct to register
      * Can only be called by the admin.
      */
-    function registerVoter(address addressToRegister, Voter memory voter) internal onlyOwner {
-        voters[addressToRegister] = voter;
+    function registerVoterInternal(address addressToRegister) internal onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
+        voters[addressToRegister].isRegistered = true;
         emit VoterRegistered(addressToRegister);
     }
 
@@ -184,7 +180,7 @@ contract Voting is Ownable {
      * @notice start proposal registration session.
      * Can only be called by the admin.
      */
-    function startProposalsRegistration() public onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
+    function startProposalsRegistration() external onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
         changeStatus(WorkflowStatus.ProposalsRegistrationStarted);
     }
 
@@ -193,10 +189,10 @@ contract Voting is Ownable {
      * @param proposalDescription proposal description to register
      * Can only be called by a registred voter.
      */
-    function registerProposal(string memory proposalDescription) public onlyOnStatus(WorkflowStatus.ProposalsRegistrationStarted) onlyRegistered {   
+    function registerProposal(string memory proposalDescription) external onlyOnStatus(WorkflowStatus.ProposalsRegistrationStarted) onlyRegistered {   
         require(bytes(proposalDescription).length != 0, "Register proposal can not be empty");    
 
-        proposals[++_proposalIdIncrement] = Proposal(proposalDescription, 0);
+        proposals[++_proposalIdIncrement].description = proposalDescription;
         emit ProposalRegistered(_proposalIdIncrement);
     }
 
@@ -205,7 +201,7 @@ contract Voting is Ownable {
      * Can only be called by the admin.
      * Can only be called during voting session.
      */
-    function endProposalsRegistration() public onlyOnStatus(WorkflowStatus.ProposalsRegistrationStarted) onlyOwner {
+    function endProposalsRegistration() external onlyOnStatus(WorkflowStatus.ProposalsRegistrationStarted) onlyOwner {
         changeStatus(WorkflowStatus.ProposalsRegistrationEnded);
     }
 
@@ -214,7 +210,7 @@ contract Voting is Ownable {
      * Can only be called by the admin.
      * Can only be called after voting registration session.
      */
-    function startVotingSession() public onlyOnStatus(WorkflowStatus.ProposalsRegistrationEnded) onlyOwner {
+    function startVotingSession() external onlyOnStatus(WorkflowStatus.ProposalsRegistrationEnded) onlyOwner {
         changeStatus(WorkflowStatus.VotingSessionStarted);
     }
 
@@ -224,7 +220,7 @@ contract Voting is Ownable {
      * Can only be called by a registred voter.
      * Can only be called during voting session.
      */
-    function vote(uint proposalId) public onlyOnStatus(WorkflowStatus.VotingSessionStarted) onlyRegistered {
+    function vote(uint proposalId) external onlyOnStatus(WorkflowStatus.VotingSessionStarted) onlyRegistered {
         require(voters[msg.sender].hasVoted == false, "Voter has already voted");   
         require(bytes(proposals[proposalId].description).length != 0, "proposal Id don't exists");            
 
@@ -232,6 +228,16 @@ contract Voting is Ownable {
         voters[msg.sender].hasVoted = true;
         voters[msg.sender].votedProposalId = proposalId;
         emit Voted(msg.sender, proposalId);
+
+        if(proposals[proposalId].voteCount == proposals[_winnerVotedProposalId].voteCount)
+        {
+            _equalityWinners = true;
+        }
+        else if(proposals[proposalId].voteCount > proposals[_winnerVotedProposalId].voteCount)
+        {
+            _winnerVotedProposalId = proposalId;
+            _equalityWinners = false;
+        }
     }
 
     /**
@@ -239,7 +245,7 @@ contract Voting is Ownable {
      * Can only be called by the admin.
      * Can only be called during voting session.
      */
-    function endVotingSession() public onlyOnStatus(WorkflowStatus.VotingSessionStarted) onlyOwner {
+    function endVotingSession() external onlyOnStatus(WorkflowStatus.VotingSessionStarted) onlyOwner {
         changeStatus(WorkflowStatus.VotingSessionEnded);
     }
 
@@ -247,32 +253,21 @@ contract Voting is Ownable {
      * @notice tally votes to determinate a proposal winner.
      * Can only be called by the admin.
      */
-    function tallyVotes() public onlyOnStatus(WorkflowStatus.VotingSessionEnded) onlyOwner {
-        //find max count value
-        for(uint i = 1; i < _proposalIdIncrement + 1; i++){
-            if(proposals[i].voteCount > proposals[_winnerVotedProposalId].voteCount){
-                _winnerVotedProposalId = i;
-            }
-        }     
-
-        //check if equality exists => winner not determined 
-        //(le besoin spécifie que le gagnant est determiné par la majorité, la proposoition gagnante doit avoir le plus de voix. Donc si egalité, les conditions pour gagner se sont pas remplies)
-        for(uint i = 1; i < _proposalIdIncrement + 1; i++){
-            if(i != _winnerVotedProposalId && proposals[i].voteCount == proposals[_winnerVotedProposalId].voteCount){
-                _winnerVotedProposalId = 0;
-                break;
-            }
-        } 
-        
-        // _currentVotingStatus = WorkflowStatus.VotesTallied;
-        // emit WorkflowStatusChange(WorkflowStatus.VotingSessionEnded, WorkflowStatus.VotesTallied);
+    function tallyVotes() external onlyOnStatus(WorkflowStatus.VotingSessionEnded) onlyOwner {
         changeStatus(WorkflowStatus.VotesTallied);
     }
 
     /**
      * @notice returns the current voting status
      */
-    function getCurrentVotingStatus() public view returns (string memory) {
+    function getCurrentVotingStatus() external view returns (uint8) {
+        return (uint8)(_currentVotingStatus);
+    }
+
+    /**
+     * @notice returns the current voting status
+     */
+    function getCurrentVotingStatusKey() external view returns (string memory) {
         return getStatusKey(_currentVotingStatus);
     }
 
