@@ -29,7 +29,7 @@ contract Voting is Ownable {
      * @notice represents the identifier of the winner proposal.
      * @dev equals 0 before vote tailling.
      */
-    uint private _winnerVotedProposalId = 0;
+    uint private _winnerVotedProposalId;
 
     /**
      * @notice determines if there is an equality winners.
@@ -113,7 +113,7 @@ contract Voting is Ownable {
      * @dev Throws if called during an inappropriate voting status.
      */
     modifier onlyOnStatus(WorkflowStatus status){
-        require(_currentVotingStatus == status, "Call is not approriate during the current voting status");
+        require(_currentVotingStatus == status, "Inapproriate call during current voting status");
         _;
     }
 
@@ -149,29 +149,6 @@ contract Voting is Ownable {
      */
     function registerVoter(address addressToRegister) external onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
         require(!voters[addressToRegister].isRegistered, "Voter already registred");
-        registerVoterInternal(addressToRegister);
-    }
-
-    /**
-     * @notice register voters by their addresses.
-     * @param addressesToRegister address voter list to register
-     * Can only be called by the admin.
-     */
-    function registerVoters(address[] memory addressesToRegister) external onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
-        for(uint i=0; i < addressesToRegister.length; i++){
-            if(!voters[addressesToRegister[i]].isRegistered)
-            {
-                registerVoterInternal(addressesToRegister[i]);
-            }
-        }
-    }
-
-    /**
-     * @notice register a determinated voter by his address.
-     * @param addressToRegister address voter to register
-     * Can only be called by the admin.
-     */
-    function registerVoterInternal(address addressToRegister) internal onlyOnStatus(WorkflowStatus.RegisteringVoters) onlyOwner {
         voters[addressToRegister].isRegistered = true;
         emit VoterRegistered(addressToRegister);
     }
