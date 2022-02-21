@@ -19,23 +19,28 @@ const VotingComponents = (props) => {
 	
 
     useEffect(() => {
-		// (async () => {
-        //     //Get all the already registered proposals to render
-        //     await provider.contract.getPastEvents(
-        //         'ProposalRegistered',
-        //         {fromBlock: 0, toBlock: 'latest'},
-        //         async (error, events) => {
-        //             if(!error){
-        //                 events.map(async (proposal) => {
-        //                     const idProposal = proposal.returnValues.proposalId;
-        //                     const proposalResponse = await provider.contract.methods.proposals(idProposal).call();
-		// 					const proposalToAdd = {proposalId: idProposal, proposalDescription: proposalResponse.description}
-        //                     //proposalObject.id = idProposal;
-        //                     setProposals(proposals => [...proposals, proposalToAdd]);  
-        //                 })
-        //             }
-        //         });
-        //     })();
+		(async () => {
+            await provider.contract.getPastEvents('ProposalRegistered',{fromBlock: 0, toBlock: 'latest'},
+                async (error, events) => {
+                    if(!error){
+						events.map(async (proposal) => {
+                            const idProposal = proposal.returnValues.proposalId;
+                            const proposalResponse = await provider.contract.methods.proposals(idProposal).call();
+							const proposalToAdd = {proposalId: idProposal, proposalDescription: proposalResponse.description}
+                            console.log("Index " +  proposals.indexOf(proposalToAdd.description));
+							setProposals(proposals => [...proposals, proposalToAdd]);  
+                        })
+                        // events.map(async (proposal) => {
+                        //     const idProposal = proposal.returnValues.proposalId;
+                        //     const proposalResponse = await provider.contract.methods.proposals(idProposal).call();
+						// 	const proposalToAdd = {proposalId: idProposal, proposalDescription: proposalResponse.description}
+                        //     console.log("Index " +  proposals.indexOf(proposalToAdd.description));
+						// 	if(proposals.indexOf(proposalToAdd.description) == "-1")
+						// 		setProposals(proposals => [...proposals, proposalToAdd]);  
+                        // })
+                    }
+                });
+            })();
 			// (async () => {
 			// 	if(currentState == '5')
 			// 	{
@@ -44,6 +49,17 @@ const VotingComponents = (props) => {
 			// 	}
 			// 	})();
 	}, [currentState, winner, voter]);
+
+	const getDistinctProposals = (events) => 
+	{	
+		const duplicateCheck = [];
+		events.map((data, index) => {
+			if (!duplicateCheck.some(e => e.proposalId == data.proposalId)) {
+				duplicateCheck.push(data);
+			}
+		});
+		return duplicateCheck;
+	};
 
     const registerVoter = async () => {
 		if(address !== "") { // && web3.utils.isAddress(address)){
@@ -263,7 +279,7 @@ const VotingComponents = (props) => {
                                             </tr>
 											<tr></tr>	
                                         </thead>
-                                        <tbody>{proposals.map((proposal) => (
+                                        <tbody>{getDistinctProposals(proposals).map((proposal) => (
 																			<tr>
 																			<td>{proposal.proposalDescription}</td>
 																			<td><Button onClick={vote.bind(this, proposal.proposalId)} > Vote </Button></td>

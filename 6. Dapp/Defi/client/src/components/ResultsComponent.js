@@ -9,7 +9,7 @@ const ResultsComponent = (props) => {
     useEffect(() => {
 	}, [winner]);
 
-	if(!winner || !winner.winnerProposalId)
+	if(!currentState || currentState != 5 || !winner || !winner.winnerProposalDescription)
 		return null;
 
 	return ( 
@@ -17,11 +17,11 @@ const ResultsComponent = (props) => {
             <Card style={{ width: '40rem' }}>
                 <Card.Header><strong>Voting winner</strong></Card.Header>
                 <Card.Body>
-                    <span><strong>Proposal Id: </strong> {winner.winnerProposalId} </span>
+                    <span><strong>{winner.winnerProposalId ? "Proposal Id: " : ""} </strong> {winner.winnerProposalId} </span>
                     <br></br>
-                    <span><strong>Proposal description: </strong> {winner.winnerProposalDescription} </span>
+                    <span><strong>{winner.winnerProposalId ? "Proposal description: " : ""}</strong> {winner.winnerProposalDescription} </span>
                     <br></br>
-                    <span><strong>Vote count: </strong> {winner.winnerVoteCount} </span>
+                    <span><strong>{winner.winnerProposalId ? "Vote count: " : ""}</strong> {winner.winnerVoteCount} </span>
                 </Card.Body>		
             </Card>
         </div>

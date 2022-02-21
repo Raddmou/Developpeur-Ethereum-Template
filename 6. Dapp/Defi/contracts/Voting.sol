@@ -229,7 +229,7 @@ contract Voting is Ownable {
         voters[msg.sender].votedProposalId = proposalId;
         emit Voted(msg.sender, proposalId);
 
-        if(proposals[proposalId].voteCount == proposals[_winnerVotedProposalId].voteCount)
+        if(proposalId != _winnerVotedProposalId && proposals[proposalId].voteCount == proposals[_winnerVotedProposalId].voteCount)
         {
             _equalityWinners = true;
         }

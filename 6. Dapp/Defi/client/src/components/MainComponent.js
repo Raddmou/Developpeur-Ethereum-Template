@@ -16,7 +16,7 @@ const MainComponent = (props) => {
     const [currentState, setCurrentState] = useState(null);
     const [voter, setVoter] = useState(null);
     const [winner, setWinner] = useState(null);
-    const [proposals, setProposals] = useState(proposalsContext);    
+    const [proposals, setProposals] = useState([]);    
 
 	useEffect(async () => {
         await getCurrentVotingStatus();
@@ -42,14 +42,19 @@ const MainComponent = (props) => {
             }
         });
 
-        provider.contract.events.ProposalRegistered(null, async (error, event) => {
-            if(!error){
-                const proposalId = event.returnValues.proposalId;
-                const proposalresponse = await provider.contract.methods.proposals(proposalId).call({from: provider.accounts[0]});
-                setProposals({proposalId: proposalId, proposalDescription: proposalresponse.description});
-                const prooiyiy = proposals;
-            }
-        });
+        // provider.contract.events.ProposalRegistered(null, async (error, event) => {
+        //     if(!error){
+        //         // const proposalId = event.returnValues.proposalId;
+        //         // const proposalresponse = await provider.contract.methods.proposals(proposalId).call({from: provider.accounts[0]});
+        //         // setProposals({proposalId: proposalId, proposalDescription: proposalresponse.description});
+        //         console.log("ProposalRegistered");
+        //         const idProposal = event.returnValues.proposalId;
+        //         const proposalResponse = await provider.contract.methods.proposals(idProposal).call();
+        //         const proposalToAdd = {proposalId: idProposal, proposalDescription: proposalResponse.description}
+        //         if(proposals.indexOf(proposalResponse.description) == -1)
+        //             setProposals(proposals => [...proposals, proposalToAdd]);  
+        //     }
+        // });
 
 	}, []);
 
@@ -88,6 +93,7 @@ const MainComponent = (props) => {
         catch(error){
           if(error){
             console.log(error);
+            setWinner({winnerProposalDescription: "No winner determinated"});
           }
         }
     }
