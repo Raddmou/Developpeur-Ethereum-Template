@@ -15,8 +15,9 @@ contract Stacking is Ownable {
     uint256 private periodReward;
 
     //userAddress > tokenAddress > staker
-    mapping(address => mapping(address => Staker)) stackers;
+    mapping(address => mapping(address => Staker)) public stackers;
     mapping(address => Pair) public pairs;
+    address public rewardsTokenAddress;
 
     struct Staker {
         uint256 balance;
@@ -57,7 +58,7 @@ contract Stacking is Ownable {
         require(pairs[_erc20Token].isEnabled, "Token to stake not allowed");
 
         uint256 allowance = IERC20(_erc20Token).allowance(msg.sender, address(this));
-        require(allowance >= _amount, "Token allowance ko");
+        //require(allowance >= _amount, "Token allowance ko");
 
         stackers[msg.sender][_erc20Token].rewards = _getCurrentRewards(_erc20Token, msg.sender);
         stackers[msg.sender][_erc20Token].lastUpdate = block.timestamp;
@@ -71,7 +72,7 @@ contract Stacking is Ownable {
         return true;
     }
 
-    function getLatestPrice(address _pairAddress) public view returns (int256) {
+    function getLatestPrice(address _pairAddress) public view returns (uint256) {
         AggregatorV3Interface priceConsumer = AggregatorV3Interface(_pairAddress);
         (
             /*uint80 roundID*/,
@@ -80,8 +81,7 @@ contract Stacking is Ownable {
             /*uint timeStamp*/,
             /*uint80 answeredInRound*/
         ) = priceConsumer.latestRoundData();
-        return price;
-        //return 1;
+        return ((uint256)(price)).div(10**8);
     }  
 
     function unstake(address _erc20Token, uint256 _amount) external {
@@ -104,7 +104,11 @@ contract Stacking is Ownable {
     }
 
     function getStakedBalance(address _erc20Token) external view returns (uint256) {
-        return _getStakedBalance(_erc20Token, msg.sender).div(10**pairs[_erc20Token].decimal);
+        return _getStakedBalance(_erc20Token, msg.sender);
+    }
+
+    function getBalance(address _erc20Token) external view returns (uint256) {
+        return IERC20(_erc20Token).balanceOf(msg.sender).div(10**pairs[_erc20Token].decimal);
     }
 
     function getCurrentRewards(address _erc20Token) external view returns (uint256) {
@@ -119,14 +123,14 @@ contract Stacking is Ownable {
         return stackers[account][_erc20Token].rewards.add(calculateRewards(_erc20Token, account));
     }
 
-    function calculateRewards(address _erc20Token, address account) private view returns (uint256) {
+    function calculateRewards(address _erc20Token, address account) public view returns (uint256) {
         if(stackers[account][_erc20Token].balance == 0) return 0;
 
-        int256 defaultLastPrice = 1;
+        uint256 defaultLastPrice = 1;
         uint256 deltaTimestamp = block.timestamp - stackers[account][_erc20Token].lastUpdate;
-        int256 lastPrice = getLatestPrice(pairs[_erc20Token].pairAddress);
-        uint256 calculatedLastPrice = ((uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice)).div(10**pairs[_erc20Token].decimal);
-        //uint256 calculatedLastPrice = (uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice);
+        uint256 lastPrice = getLatestPrice(pairs[_erc20Token].pairAddress);
+        //uint256 calculatedLastPrice = ((uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice)).div(10**pairs[_erc20Token].decimal);
+        uint256 calculatedLastPrice = (lastPrice > 0 ? lastPrice : defaultLastPrice);
 
         uint256 rewardsAmount = _getStakedBalance(_erc20Token, account).mul(calculatedLastPrice);
 

@@ -28,7 +28,7 @@ const InformationsComponent = (props) => {
 
 	return ( 
         <div>
-            <Card style={{ width: '40rem' }}>
+            <Card>
                 <Card.Header><strong>Informations</strong></Card.Header>
                 <Card.Body>
 					{/* <span>Network {provider.network} </span> */}

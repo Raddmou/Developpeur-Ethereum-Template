@@ -115,10 +115,10 @@ const MainComponent = (props) => {
                                 {/* <div style={{display: 'flex', justifyContent: 'center'}}>
                                     <CurrentStatusComponent isOwner={isOwner} currentState={currentState} voter={voter}/>
                                 </div> */}
-                                <div style={{display: 'flex', justifyContent: 'center'}}>
+                                <div >
                                     <InformationsComponent isOwner={isOwner}/>
                                 </div>
-                                <div style={{display: 'flex', justifyContent: 'center'}}>
+                                <div >
                                     <StakingComponent isOwner={isOwner}/>
                                 </div>
                                 {/* <div style={{display: 'flex', justifyContent: 'center'}}>
