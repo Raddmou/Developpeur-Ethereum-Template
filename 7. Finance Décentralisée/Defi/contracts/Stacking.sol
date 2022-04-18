@@ -104,7 +104,7 @@ contract Stacking is Ownable {
     }
 
     function getStakedBalance(address _erc20Token) external view returns (uint256) {
-        return _getStakedBalance(_erc20Token, msg.sender);
+        return _getStakedBalance(_erc20Token, msg.sender).div(10**pairs[_erc20Token].decimal);
     }
 
     function getCurrentRewards(address _erc20Token) external view returns (uint256) {
@@ -125,8 +125,8 @@ contract Stacking is Ownable {
         int256 defaultLastPrice = 1;
         uint256 deltaTimestamp = block.timestamp - stackers[account][_erc20Token].lastUpdate;
         int256 lastPrice = getLatestPrice(pairs[_erc20Token].pairAddress);
-        // uint256 calculatedLastPrice = ((uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice)).div(10**pairs[_erc20Token].decimal);
-        uint256 calculatedLastPrice = (uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice);
+        uint256 calculatedLastPrice = ((uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice)).div(10**pairs[_erc20Token].decimal);
+        //uint256 calculatedLastPrice = (uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice);
 
         uint256 rewardsAmount = _getStakedBalance(_erc20Token, account).mul(calculatedLastPrice);
 

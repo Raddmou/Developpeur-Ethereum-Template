@@ -41,11 +41,11 @@ module.exports = async function(deployer) {
   
 
   //add FAKE/USD to test
-  let responseAddFakePair = await stackingContract.addPair("FAKE/USD", fakeToken.address, "0x9326BFA02ADD2366b30bacB125260Af641031331", 10);
+  let responseAddFakePair = await stackingContract.addPair("FAKE/USD", fakeToken.address, "0x9326BFA02ADD2366b30bacB125260Af641031331", 18);
 
-  let responseAddEthPair = await stackingContract.addPair("ETH/USD", "0x64Db717b950C41ce499E66aF2A86040571F99f1a", "0x8A753747A1Fa494EC906cE90E9f37563A8AF630e", 10);
+  let responseAddEthPair = await stackingContract.addPair("ETH/USD", "0x64Db717b950C41ce499E66aF2A86040571F99f1a", "0x8A753747A1Fa494EC906cE90E9f37563A8AF630e", 18);
   
-  let responseAddLinkPair = await stackingContract.addPair("LINK/USD", "0xbD0e66dfBCd372eC9d8c7ddb728f809B5Ea4C572", "0xd8bD0a1cB028a31AA859A21A3758685a95dE4623", 10);
+  let responseAddLinkPair = await stackingContract.addPair("LINK/USD", "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd8bD0a1cB028a31AA859A21A3758685a95dE4623", 18);
   
   // let responseAddPair = await Stacking.then(instance => {
   //   instance.stackingContract.addPair("FAKE/USD", fakeToken.address, "0x9326BFA02ADD2366b30bacB125260Af641031331", 10);

@@ -272,8 +272,13 @@ const StakingComponent = (props) => {
 
         const token = new provider.web3.eth.Contract(ERC20.abi, selectedErc20Token.value);				        
         let response = await token.methods.balanceOf(provider.accounts[0]).call({from: provider.accounts[0]});
+        const decimals = await token.methods.decimals().call();
+        console.log(" decimals " + decimals);
+        const symbol = await token.methods.symbol().call();
+        console.log("symbol " + symbol);
+        const balance = (response / 10**decimals) + " " + symbol;
         //let balance = provider.web3.utils.fromWei(response);
-		setBalanceErc20Token(response); 
+		setBalanceErc20Token(balance); 
 
         //const symbol = await tokenContract.methods.symbol().call();
         //const decimals = await tokenContract.methods.decimals().call();
