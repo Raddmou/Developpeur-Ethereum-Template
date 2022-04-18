@@ -116,7 +116,7 @@ const MainComponent = (props) => {
 
     return ( 
         <div>
-            <div class="header-app">
+            <div className="header-app">
                 <h1>Voting System</h1>
             </div>
             <winnerContext.Provider value={winner}>

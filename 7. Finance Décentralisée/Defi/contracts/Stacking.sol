@@ -4,37 +4,75 @@ pragma solidity 0.8.12;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MMT.sol";
 
-contract Staking  {
+contract Stacking is Ownable {
     using SafeMath for uint256;
-
-    AggregatorV3Interface private priceConsumer;
+    //AggregatorV3Interface private priceConsumer;
     MMT private rewardsToken;
     uint256 private percentageReward;
     uint256 private periodReward;
 
-    mapping(address => Stacker) private stackers;
+    //userAddress > tokenAddress > staker
+    mapping(address => mapping(address => Staker)) stackers;
+    mapping(address => Pair) public pairs;
 
-    struct Stacker {
+    struct Staker {
         uint256 balance;
         uint256 rewards;
         uint256 lastUpdate;
     }
 
-    event onStaking(address stakerAddress, uint256 amountToStake);
-    event onUnstaking(address stakerAddress, uint256 amountToUnstake);
-	event onWithdrawingRewards(address stakerAddress, uint256 rewards);
-
-    //0x9326BFA02ADD2366b30bacB125260Af641031331 ETH/USD Kovan
-    constructor(address aggregatorStackingAddress, MMT mmtToken) {
-        priceConsumer = AggregatorV3Interface(aggregatorStackingAddress);
-        rewardsToken = mmtToken;
-        percentageReward = 1;
-        periodReward = 86400; //1 day
+    struct Pair {
+        string code;
+        uint decimal;
+        bool isEnabled;
+        address pairAddress;
     }
 
-    function getLatestPrice() public view returns (int256) {
+    event onStaking(address erc20Token, address stakerAddress, uint256 amountToStake);
+    event onUnstaking(address erc20Token, address stakerAddress, uint256 amountToUnstake);
+	event onWithdrawingRewards(address erc20Token, address stakerAddress, uint256 rewards);
+    event onAddingPairs(address erc20Token, address pairAddress);
+
+    //0x9326BFA02ADD2366b30bacB125260Af641031331 ETH/USD Kovan
+    constructor(address _mmtTokenAddress //address _aggregatorStackingAddress, 
+                , uint256 _percentageReward, uint256 _periodRewardInSeconds) {
+        rewardsToken = MMT(_mmtTokenAddress);
+        percentageReward = _percentageReward; //1;
+        periodReward = _periodRewardInSeconds; //86400; //1 day
+    }
+
+    function addPair(string memory _code, address _erc20Token, address _pairAddress, uint256 _decimal) external onlyOwner() {
+        pairs[_erc20Token].isEnabled = true;
+        pairs[_erc20Token].code = _code;
+        pairs[_erc20Token].decimal = _decimal;
+        pairs[_erc20Token].pairAddress = _pairAddress;
+        emit onAddingPairs(_erc20Token, _pairAddress);
+    }
+
+    function stake(address _erc20Token, uint256 _amount) external returns(bool success) {
+        require(_amount > 0, "Amount must be greater than 0");
+        require(pairs[_erc20Token].isEnabled, "Token to stake not allowed");
+
+        uint256 allowance = IERC20(_erc20Token).allowance(msg.sender, address(this));
+        require(allowance >= _amount, "Token allowance ko");
+
+        stackers[msg.sender][_erc20Token].rewards = _getCurrentRewards(_erc20Token, msg.sender);
+        stackers[msg.sender][_erc20Token].lastUpdate = block.timestamp;
+        stackers[msg.sender][_erc20Token].balance += _amount;
+
+        //todo: revert if transfer fail
+
+        IERC20(_erc20Token).transferFrom(msg.sender, address(this), _amount);
+
+        emit onStaking(_erc20Token, msg.sender, _amount);
+        return true;
+    }
+
+    function getLatestPrice(address _pairAddress) public view returns (int256) {
+        AggregatorV3Interface priceConsumer = AggregatorV3Interface(_pairAddress);
         (
             /*uint80 roundID*/,
             int price,
@@ -43,54 +81,54 @@ contract Staking  {
             /*uint80 answeredInRound*/
         ) = priceConsumer.latestRoundData();
         return price;
+        //return 1;
     }  
 
-    function stake() external payable {
-        require(msg.value > 0, "Cannot stake 0");
-        stackers[msg.sender].rewards = getRewards(msg.sender);
-        stackers[msg.sender].lastUpdate = block.timestamp;
-        stackers[msg.sender].balance += msg.value;
-        emit onStaking(msg.sender, msg.value);
+    function unstake(address _erc20Token, uint256 _amount) external {
+        require(_amount <= stackers[msg.sender][_erc20Token].balance, "Insufficient stacked balance");
+        
+        stackers[msg.sender][_erc20Token].rewards = _getCurrentRewards(_erc20Token, msg.sender);
+        stackers[msg.sender][_erc20Token].balance -= _amount;
+        stackers[msg.sender][_erc20Token].lastUpdate = block.timestamp;
+
+        IERC20(_erc20Token).transfer(msg.sender,_amount);
+        emit onUnstaking(_erc20Token, msg.sender, _amount);
     }
 
-    function unstake(uint256 _amount) external {
-        require(_amount <= stackers[msg.sender].balance, "Insufficient stacked balance");
-        stackers[msg.sender].balance -= _amount;
-        payable(msg.sender).transfer(_amount);
-        emit onUnstaking(msg.sender, _amount);
-    }
-
-    function withdrawRewards() external {
-        uint256 rewards = _getCurrentRewards(msg.sender);
-        stackers[msg.sender].lastUpdate = block.timestamp;
-        stackers[msg.sender].rewards = 0;
+    function withdrawRewards(address _erc20Token) external {
+        uint256 rewards = _getCurrentRewards(_erc20Token, msg.sender);
+        stackers[msg.sender][_erc20Token].lastUpdate = block.timestamp;
+        stackers[msg.sender][_erc20Token].rewards = 0;
         rewardsToken.mint(msg.sender, rewards);
-        emit onWithdrawingRewards(msg.sender, rewards);
+        emit onWithdrawingRewards(_erc20Token, msg.sender, rewards);
     }
 
-    function getStakedBalance() public view returns (uint256) {
-        return _getStakedBalance(msg.sender);
+    function getStakedBalance(address _erc20Token) external view returns (uint256) {
+        return _getStakedBalance(_erc20Token, msg.sender);
     }
 
-    function getCurrentRewards() public view returns (uint256) {
-        return _getCurrentRewards(msg.sender);
+    function getCurrentRewards(address _erc20Token) external view returns (uint256) {
+        return _getCurrentRewards(_erc20Token, msg.sender);
     }
 
-    function _getStakedBalance(address account) private view returns (uint256) {
-        return stackers[account].balance;
+    function _getStakedBalance(address _erc20Token, address account) private view returns (uint256) {
+        return stackers[account][_erc20Token].balance;
     }  
 
-    function _getCurrentRewards(address account) private view returns (uint256) {
-        return stackers[account].rewards + getRewards(account);
+    function _getCurrentRewards(address _erc20Token, address account) private view returns (uint256) {
+        return stackers[account][_erc20Token].rewards.add(calculateRewards(_erc20Token, account));
     }
 
-    function getRewards(address account) private view returns (uint256) {
-        if(stackers[account].balance == 0) return 0;
+    function calculateRewards(address _erc20Token, address account) private view returns (uint256) {
+        if(stackers[account][_erc20Token].balance == 0) return 0;
 
-        uint256 deltaTimestamp = block.timestamp - stackers[account].lastUpdate;
-        int256 lastPrice = getLatestPrice();
+        int256 defaultLastPrice = 1;
+        uint256 deltaTimestamp = block.timestamp - stackers[account][_erc20Token].lastUpdate;
+        int256 lastPrice = getLatestPrice(pairs[_erc20Token].pairAddress);
+        // uint256 calculatedLastPrice = ((uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice)).div(10**pairs[_erc20Token].decimal);
+        uint256 calculatedLastPrice = (uint256)(lastPrice > 0 ? lastPrice : defaultLastPrice);
 
-        uint256 rewardsAmount = _getStakedBalance(account).mul(uint256(lastPrice));
+        uint256 rewardsAmount = _getStakedBalance(_erc20Token, account).mul(calculatedLastPrice);
 
         return rewardsAmount.mul(deltaTimestamp).div(periodReward).mul(percentageReward).div(100);
     } 

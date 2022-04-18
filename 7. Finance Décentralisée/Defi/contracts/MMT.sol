@@ -6,10 +6,25 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MMT is ERC20, Ownable {
 
+    mapping(address => bool) private authorizedContracts;
+
     constructor() ERC20("MMT token", "MMT") {
     }
 
-    function mint(address account, uint amount) public onlyOwner {
+    modifier onlyAuthorizeContractsOrOwner() {
+        require(((authorizedContracts[msg.sender] == true) || msg.sender == owner()), "Not authorized");
+        _;
+    }
+
+    function mint(address account, uint amount) external onlyAuthorizeContractsOrOwner {
         _mint(account, amount);
+    }
+
+    function authorizeContract(address _contractAddress) external onlyAuthorizeContractsOrOwner() {
+        authorizedContracts[_contractAddress] = true;
+    }
+
+    function denyContract(address _contractAddress) external onlyAuthorizeContractsOrOwner() {
+        authorizedContracts[_contractAddress] = false;
     }
 }
