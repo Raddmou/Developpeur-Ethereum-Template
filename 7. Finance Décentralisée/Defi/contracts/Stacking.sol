@@ -9,13 +9,12 @@ import "./MMT.sol";
 
 contract Stacking is Ownable {
     using SafeMath for uint256;
-    //AggregatorV3Interface private priceConsumer;
     MMT private rewardsToken;
     uint256 private percentageReward;
     uint256 private periodReward;
 
     //userAddress > tokenAddress > staker
-    mapping(address => mapping(address => Staker)) public stackers;
+    mapping(address => mapping(address => Staker)) stackers;
     mapping(address => Pair) public pairs;
     address public rewardsTokenAddress;
 
@@ -38,11 +37,13 @@ contract Stacking is Ownable {
     event onAddingPairs(address erc20Token, address pairAddress);
 
     //0x9326BFA02ADD2366b30bacB125260Af641031331 ETH/USD Kovan
-    constructor(address _mmtTokenAddress //address _aggregatorStackingAddress, 
-                , uint256 _percentageReward, uint256 _periodRewardInSeconds) {
-        rewardsToken = MMT(_mmtTokenAddress);
+    constructor(address _mmtTokenAddress
+                , uint256 _percentageReward
+                , uint256 _periodRewardInSeconds) {
+        rewardsTokenAddress = _mmtTokenAddress;
         percentageReward = _percentageReward; //1;
-        periodReward = _periodRewardInSeconds; //86400; //1 day
+        periodReward = _periodRewardInSeconds; //86400 s; //1 day
+        rewardsToken = MMT(_mmtTokenAddress);
     }
 
     function addPair(string memory _code, address _erc20Token, address _pairAddress, uint256 _decimal) external onlyOwner() {
@@ -58,13 +59,11 @@ contract Stacking is Ownable {
         require(pairs[_erc20Token].isEnabled, "Token to stake not allowed");
 
         uint256 allowance = IERC20(_erc20Token).allowance(msg.sender, address(this));
-        //require(allowance >= _amount, "Token allowance ko");
+        require(allowance >= _amount, "Token allowance ko");
 
         stackers[msg.sender][_erc20Token].rewards = _getCurrentRewards(_erc20Token, msg.sender);
         stackers[msg.sender][_erc20Token].lastUpdate = block.timestamp;
         stackers[msg.sender][_erc20Token].balance += _amount;
-
-        //todo: revert if transfer fail
 
         IERC20(_erc20Token).transferFrom(msg.sender, address(this), _amount);
 

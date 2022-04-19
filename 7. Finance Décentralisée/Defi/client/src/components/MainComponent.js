@@ -11,50 +11,10 @@ import StakingComponent from "./StakingComponent";
 const MainComponent = (props) => {
     const provider = useContext(providerContext);
     const [isOwner, setIsOwner] = useState(null);
-    // const [currentState, setCurrentState] = useState(null);
-    // const [voter, setVoter] = useState(null);
-    // const [winner, setWinner] = useState(null);
-    // const [proposals, setProposals] = useState([]);    
 
 	useEffect(async () => {
-        // await getCurrentVotingStatus();
-
 		 await getOwner();
-
-        // await getVoter(); 
-        
-        // await getWinner();
-
-        // provider.contract.events.WorkflowStatusChanged(null, (error, event) => {
-        //     if(!error){
-        //         console.log("WorkflowStatusChanged");
-        //         setCurrentState(event.returnValues.newStatus);
-        //         getWinner();
-        //     }
-        // });
-        // provider.contract.events.Voted(null, (error, event) => {
-        //     if(!error){
-        //         console.log("Voted");
-        //         const hasVoted = (event.returnValues.voter == provider.accounts[0]);
-        //         setVoter({hasVoted: hasVoted});
-        //     }
-        // });
-
 	}, []);
-
-    
-
-    // const getVoter = async () => {
-    //     try{
-    //       const voterObject = await provider.contract.methods.voters(provider.accounts[0]).call({from: provider.accounts[0]});
-    //       setVoter(voterObject);
-    //     }
-    //     catch(error){
-    //       if(error){
-    //         console.log(error);
-    //       }
-    //     }
-    // }
 
     const getOwner = async () => {
         try{
@@ -72,33 +32,6 @@ const MainComponent = (props) => {
         }
     }
 
-    // const getWinner = async () => {
-    //     try{
-
-    //         const winnerResponse = await provider.contract.methods.getWinner().call();
-    //         setWinner(winnerResponse);   
-    //     }
-    //     catch(error){
-    //       if(error){
-    //         console.log(error);
-    //         setWinner({winnerProposalDescription: "No winner determinated"});
-    //       }
-    //     }
-    // }
-
-    // const getCurrentVotingStatus = async () => {
-    //     try {
-    //         const state = await provider.contract.methods.getCurrentVotingStatus().call();
-    //         setCurrentState(state);
-    //         if(state == '5')
-    //         {
-    //             await getWinner();
-    //         }
-    //     } catch (error) {
-    //         console.log(error);
-    //     } 
-    // };
-
     if (!provider || isOwner == null)
         return null;
 
@@ -107,31 +40,14 @@ const MainComponent = (props) => {
             <div className="header-app">
                 <h1>Stacking</h1>
             </div>
-            {/* <winnerContext.Provider value={winner}> */}
                 <providerContext.Provider value={provider}>
-                    {/* <statusContext.Provider value={currentState}>
-                        <proposalsContext.Provider value={proposals}>
-                            <voterContext.Provider value={voter}>           */}
-                                {/* <div style={{display: 'flex', justifyContent: 'center'}}>
-                                    <CurrentStatusComponent isOwner={isOwner} currentState={currentState} voter={voter}/>
-                                </div> */}
-                                <div >
-                                    <InformationsComponent isOwner={isOwner}/>
-                                </div>
-                                <div >
-                                    <StakingComponent isOwner={isOwner}/>
-                                </div>
-                                {/* <div style={{display: 'flex', justifyContent: 'center'}}>
-                                    <VotingComponents isOwner={isOwner} currentState={currentState} proposals={proposals} voter={voter} winner={winner}/>
-                                </div>
-                                <div style={{display: 'flex', justifyContent: 'center'}}>
-                                    <ResultsComponent winner={winner}/>
-                                </div> */}
-                            {/* </voterContext.Provider>
-                        </proposalsContext.Provider>
-                    </statusContext.Provider> */}
+                    <div >
+                        <InformationsComponent isOwner={isOwner}/>
+                    </div>
+                    <div >
+                        <StakingComponent isOwner={isOwner}/>
+                    </div>
                 </providerContext.Provider>
-            {/* </winnerContext.Provider> */}
         </div>
     );
 }

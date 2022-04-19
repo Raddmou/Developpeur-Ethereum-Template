@@ -31,7 +31,6 @@ const InformationsComponent = (props) => {
             <Card>
                 <Card.Header><strong>Informations</strong></Card.Header>
                 <Card.Body>
-					{/* <span>Network {provider.network} </span> */}
                     {getContent()}
                     <br></br>
                     <span className="navConnected"><b>Wallet address </b>{provider.accounts[0]} </span>
